@@ -31,7 +31,7 @@
 
 ## Commit & Pull Request Guidelines
 
-- Commit messages in history are short, imperative, and descriptive (e.g., “Implement --wait-for-ebs-mount option”, “Fix a bug”).
+- Commit messages in history are short, imperative, and descriptive (e.g., “Implement --wait-for-volume-mount option”, “Fix a bug”).
 - Occasional `fix:` prefixes appear; there is no strict Conventional Commits rule.
 - PRs should include:
   - A brief summary of behavior changes.
