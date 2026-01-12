@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 # Bash entrypoint to synchronize data with AWS S3 before and after command execution
+# (repository: https://github.com/dceoy/s3-sync-entrypoint)
 #
 # Usage:
 #   s3-sync-entrypoint [--debug] [--dryrun] (--input-s3=<uri>)...
@@ -71,7 +72,7 @@ set -u
 ARGV=("${*}")
 SSE_SCRIPT_PATH=$(realpath "${0}")
 SSE_SCRIPT_NAME=$(basename "${SSE_SCRIPT_PATH}")
-SSE_SCRIPT_VERSION='v0.2.1'
+SSE_SCRIPT_VERSION='v0.3.0'
 SSE_DRYRUN=0
 SSE_SKIP_OUTPUT_ON_ERROR=0
 SSE_INPUT_S3_URIS=()
@@ -154,7 +155,7 @@ function wait_for_ebs_mount {
   local elapsed=0
   echo_n_log "Waiting for EBS volume mount at ${mount_path} (timeout: ${timeout}s)..."
   while [[ ${elapsed} -lt ${timeout} ]]; do
-    if mountpoint -q "${mount_path}" 2>/dev/null; then
+    if mountpoint -q "${mount_path}" 2> /dev/null; then
       echo_n_log "EBS volume mounted at ${mount_path} after ${elapsed}s"
       return 0
     fi
