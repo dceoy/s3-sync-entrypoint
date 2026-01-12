@@ -9,8 +9,8 @@
 #       (--inbound-sync-option=<arg>)... (--outbound-sync-option=<arg>)...
 #       [--input-data-dir=<path>] [--output-data-dir=<path>]
 #       [--intermediate-data-dir=<path>] [--upload-log-to-s3=<uri>]
-#       [--wait-for-ebs-mount=<path>] [--ebs-mount-timeout=<seconds>]
-#       [--ebs-mount-interval=<seconds>]
+#       [--wait-for-volume-mount=<path>] [--volume-mount-timeout=<seconds>]
+#       [--volume-mount-interval=<seconds>]
 #       [--skip-output-on-failure] [--disable-lookup] <command>...
 #   s3-sync-entrypoint --version
 #   s3-sync-entrypoint -h|--help
@@ -40,11 +40,11 @@
 #                       Specify a local directory path for intermediate data
 #   --upload-log-to-s3=<uri>
 #                       Upload a log file to S3 after processes are completed
-#   --wait-for-ebs-mount=<path>
-#                       Wait for an EBS volume to be mounted at the specified path
-#   --ebs-mount-timeout=<seconds>
-#                       Timeout in seconds for waiting for EBS mount (default: 300)
-#   --ebs-mount-interval=<seconds>
+#   --wait-for-volume-mount=<path>
+#                       Wait for a volume to be mounted at the specified path
+#   --volume-mount-timeout=<seconds>
+#                       Timeout in seconds for waiting for volume mount (default: 300)
+#   --volume-mount-interval=<seconds>
 #                       Interval in seconds between mount checks (default: 5)
 #   --skip-output-on-failure
 #                       Skip outbound sync if a command fails
@@ -86,9 +86,9 @@ SSE_OUTPUT_LOG_S3_URI=''
 SSE_COMMAND=()
 SSE_START_DATE="$(date +%s)"
 SSE_DISABLE_LOOKUP=0
-SSE_EBS_MOUNT_PATH=''
-SSE_EBS_MOUNT_TIMEOUT=300
-SSE_EBS_MOUNT_INTERVAL=5
+SSE_VOLUME_MOUNT_PATH=''
+SSE_VOLUME_MOUNT_TIMEOUT=300
+SSE_VOLUME_MOUNT_INTERVAL=5
 for a in "${@}"; do
   [[ "${a}" = '--disable-lookup' ]] && SSE_DISABLE_LOOKUP=1 && break
 done
@@ -148,21 +148,21 @@ function echo_n_log {
   fi
 }
 
-function wait_for_ebs_mount {
+function wait_for_volume_mount {
   local mount_path="${1}"
   local timeout="${2}"
   local interval="${3}"
   local elapsed=0
-  echo_n_log "Waiting for EBS volume mount at ${mount_path} (timeout: ${timeout}s)..."
+  echo_n_log "Waiting for volume mount at ${mount_path} (timeout: ${timeout}s)..."
   while [[ ${elapsed} -lt ${timeout} ]]; do
     if mountpoint -q "${mount_path}" 2> /dev/null; then
-      echo_n_log "EBS volume mounted at ${mount_path} after ${elapsed}s"
+      echo_n_log "Volume mounted at ${mount_path} after ${elapsed}s"
       return 0
     fi
     sleep "${interval}"
     elapsed=$((elapsed + interval))
   done
-  abort "Timeout waiting for EBS volume mount at ${mount_path} after ${timeout}s"
+  abort "Timeout waiting for volume mount at ${mount_path} after ${timeout}s"
 }
 
 while [[ ${#} -ge 1 ]]; do
@@ -240,23 +240,23 @@ while [[ ${#} -ge 1 ]]; do
       --upload-log-to-s3=* )
         SSE_OUTPUT_LOG_S3_URI="$(read_str "${1#*\=}")" && shift 1
         ;;
-      --wait-for-ebs-mount )
-        SSE_EBS_MOUNT_PATH="$(read_str "${2}")" && shift 2
+      --wait-for-volume-mount )
+        SSE_VOLUME_MOUNT_PATH="$(read_str "${2}")" && shift 2
         ;;
-      --wait-for-ebs-mount=* )
-        SSE_EBS_MOUNT_PATH="$(read_str "${1#*\=}")" && shift 1
+      --wait-for-volume-mount=* )
+        SSE_VOLUME_MOUNT_PATH="$(read_str "${1#*\=}")" && shift 1
         ;;
-      --ebs-mount-timeout )
-        SSE_EBS_MOUNT_TIMEOUT="$(read_str "${2}")" && shift 2
+      --volume-mount-timeout )
+        SSE_VOLUME_MOUNT_TIMEOUT="$(read_str "${2}")" && shift 2
         ;;
-      --ebs-mount-timeout=* )
-        SSE_EBS_MOUNT_TIMEOUT="$(read_str "${1#*\=}")" && shift 1
+      --volume-mount-timeout=* )
+        SSE_VOLUME_MOUNT_TIMEOUT="$(read_str "${1#*\=}")" && shift 1
         ;;
-      --ebs-mount-interval )
-        SSE_EBS_MOUNT_INTERVAL="$(read_str "${2}")" && shift 2
+      --volume-mount-interval )
+        SSE_VOLUME_MOUNT_INTERVAL="$(read_str "${2}")" && shift 2
         ;;
-      --ebs-mount-interval=* )
-        SSE_EBS_MOUNT_INTERVAL="$(read_str "${1#*\=}")" && shift 1
+      --volume-mount-interval=* )
+        SSE_VOLUME_MOUNT_INTERVAL="$(read_str "${1#*\=}")" && shift 1
         ;;
       -* )
         abort "invalid option: ${1}"
@@ -320,10 +320,10 @@ if [[ -n "${SSE_OUTPUT_LOG_S3_URI}" ]]; then
   validate_s3_uri "${SSE_OUTPUT_LOG_S3_URI}"
 fi
 
-if [[ -n "${SSE_EBS_MOUNT_PATH}" ]]; then
-  echo_n_log "EBS_MOUNT_PATH:         ${SSE_EBS_MOUNT_PATH}"
-  echo_n_log "EBS_MOUNT_TIMEOUT:      ${SSE_EBS_MOUNT_TIMEOUT}"
-  echo_n_log "EBS_MOUNT_INTERVAL:     ${SSE_EBS_MOUNT_INTERVAL}"
+if [[ -n "${SSE_VOLUME_MOUNT_PATH}" ]]; then
+  echo_n_log "VOLUME_MOUNT_PATH:      ${SSE_VOLUME_MOUNT_PATH}"
+  echo_n_log "VOLUME_MOUNT_TIMEOUT:   ${SSE_VOLUME_MOUNT_TIMEOUT}"
+  echo_n_log "VOLUME_MOUNT_INTERVAL:  ${SSE_VOLUME_MOUNT_INTERVAL}"
 fi
 
 if [[ ${#SSE_COMMAND[@]} -gt 0 ]]; then
@@ -334,8 +334,8 @@ fi
 
 
 echo
-if [[ -n "${SSE_EBS_MOUNT_PATH}" ]]; then
-  wait_for_ebs_mount "${SSE_EBS_MOUNT_PATH}" "${SSE_EBS_MOUNT_TIMEOUT}" "${SSE_EBS_MOUNT_INTERVAL}"
+if [[ -n "${SSE_VOLUME_MOUNT_PATH}" ]]; then
+  wait_for_volume_mount "${SSE_VOLUME_MOUNT_PATH}" "${SSE_VOLUME_MOUNT_TIMEOUT}" "${SSE_VOLUME_MOUNT_INTERVAL}"
 fi
 
 [[ -d "${INPUT_DATA_DIR}" ]] || echo_n_eval "mkdir -p ${INPUT_DATA_DIR}"
