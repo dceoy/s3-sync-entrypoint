@@ -153,16 +153,24 @@ function wait_for_volume_mount {
   local timeout="${2}"
   local interval="${3}"
   local elapsed=0
-  echo_n_log "Waiting for volume mount at ${mount_path} (timeout: ${timeout}s)..."
-  while [[ ${elapsed} -lt ${timeout} ]]; do
-    if mountpoint -q "${mount_path}" 2> /dev/null; then
-      echo_n_log "Volume mounted at ${mount_path} after ${elapsed}s"
-      return 0
-    fi
-    sleep "${interval}"
-    elapsed=$((elapsed + interval))
-  done
-  abort "Timeout waiting for volume mount at ${mount_path} after ${timeout}s"
+  if ! [[ "${timeout}" =~ ^[0-9]+$ ]]; then
+    abort "invalid volume mount timeout: ${timeout}"
+  elif ! [[ "${interval}" =~ ^[0-9]+$ ]] || [[ "${interval}" -le 0 ]]; then
+    abort "invalid volume mount interval: ${interval}"
+  else
+    echo_n_log "Waiting for volume mount at ${mount_path} (timeout: ${timeout}s)..."
+    local start_seconds="${SECONDS}"
+    while [[ ${elapsed} -le ${timeout} ]]; do
+      elapsed=$((SECONDS - start_seconds))
+      if mountpoint --quiet "${mount_path}"; then
+        echo_n_log "Volume mounted at ${mount_path} after ${elapsed}s"
+        return 0
+      else
+        sleep "${interval}"
+      fi
+    done
+    abort "Timeout waiting for volume mount at ${mount_path} after ${timeout}s"
+  fi
 }
 
 while [[ ${#} -ge 1 ]]; do
