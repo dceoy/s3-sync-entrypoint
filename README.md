@@ -41,4 +41,8 @@ $ docker image pull dceoy/s3-sync-entrypoint
     2.  Execute the command (`cp -r /input/input0 /input/input1 /output/`).
     3.  Recursively copy `/output` (`OUTPUT_DATA_DIR`) to `s3://bucket-o/output0`.
 
+    Each `aws s3 sync` is retried up to 3 total attempts by default. Use
+    `--sync-retry-attempts` and `--sync-retry-interval` to adjust the retry
+    behavior.
+
 Run `s3-sync-entrypoint --help` for more information.
