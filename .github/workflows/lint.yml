@@ -1,0 +1,32 @@
+---
+name: Lint for Shell
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+    working-directory: .
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install --no-install-recommends --no-install-suggests shellcheck
+      - name: Execute shellcheck
+        run: >
+          find . -mindepth 1 -maxdepth 1 -type f -executable -print0
+          | xargs -0 -t shellcheck --external-sources
