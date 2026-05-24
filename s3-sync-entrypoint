@@ -35,8 +35,8 @@
 #                       Retry `aws s3 sync` up to the specified total attempts
 #                       (default: 3)
 #   --sync-retry-interval=<seconds>
-#                       Wait time in seconds before retrying `aws s3 sync`
-#                       (default: 5)
+#                       Positive wait time in seconds before retrying
+#                       `aws s3 sync` (default: 5)
 #   --input-data-dir=<path>
 #                       Specify a local directory path for input data from S3
 #                       (This overrides `${INPUT_DATA_DIR}`.)
@@ -130,6 +130,14 @@ function read_str {
   fi
 }
 
+function is_non_negative_integer {
+  [[ "${1}" =~ ^[0-9]+$ ]]
+}
+
+function is_positive_integer {
+  [[ "${1}" =~ ^[0-9]*[1-9][0-9]*$ ]]
+}
+
 function validate_s3_uri {
   for s in "${@}"; do
     [[ "${s}" =~ ^s3://.+ ]] || abort "invalid URI: ${s}"
@@ -162,9 +170,9 @@ function wait_for_volume_mount {
   local timeout="${2}"
   local interval="${3}"
   local elapsed=0
-  if ! [[ "${timeout}" =~ ^[0-9]+$ ]]; then
+  if ! is_non_negative_integer "${timeout}"; then
     abort "invalid volume mount timeout: ${timeout}"
-  elif ! [[ "${interval}" =~ ^[0-9]+$ ]] || [[ "${interval}" -le 0 ]]; then
+  elif ! is_positive_integer "${interval}"; then
     abort "invalid volume mount interval: ${interval}"
   else
     echo_n_log "Waiting for volume mount at ${mount_path} (timeout: ${timeout}s)..."
@@ -318,9 +326,9 @@ while [[ ${#} -ge 1 ]]; do
     } || exit 1
 done
 
-if ! [[ "${SSE_SYNC_RETRY_ATTEMPTS}" =~ ^[0-9]+$ ]] || [[ "${SSE_SYNC_RETRY_ATTEMPTS}" -le 0 ]]; then
+if ! is_positive_integer "${SSE_SYNC_RETRY_ATTEMPTS}"; then
   abort "invalid sync retry attempts: ${SSE_SYNC_RETRY_ATTEMPTS}"
-elif ! [[ "${SSE_SYNC_RETRY_INTERVAL}" =~ ^[0-9]+$ ]]; then
+elif ! is_positive_integer "${SSE_SYNC_RETRY_INTERVAL}"; then
   abort "invalid sync retry interval: ${SSE_SYNC_RETRY_INTERVAL}"
 fi
 
