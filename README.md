@@ -43,6 +43,6 @@ $ docker image pull dceoy/s3-sync-entrypoint
 
     Each `aws s3 sync` is retried up to 3 total attempts by default. Use
     `--sync-retry-attempts` and `--sync-retry-interval` to adjust the retry
-    behavior.
+    behavior. Both values must be positive integers.
 
 Run `s3-sync-entrypoint --help` for more information.
