@@ -1,6 +1,8 @@
 # s3-sync-entrypoint
 
-Bash entrypoint to synchronize data with AWS S3 before and after command execution
+Bash entrypoint to synchronize data with Amazon S3 before and after command execution
+
+[![CI/CD](https://github.com/dceoy/s3-sync-entrypoint/actions/workflows/ci.yml/badge.svg)](https://github.com/dceoy/s3-sync-entrypoint/actions/workflows/ci.yml)
 
 ## Installation
 
